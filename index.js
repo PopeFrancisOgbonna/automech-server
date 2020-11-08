@@ -97,12 +97,12 @@ app.post("/service/request", (req, res) =>{
     if((agent_name ==="" || agent_email ==="" || agent_phone ==="" || client_name ==="" || client_email ==="" || client_phone ==="")){
         return res.status(201).send("Invalid Input.")
     }
-    let query = 'insert into service_request (agent_name, agent_mail, agent_phone, clients, phone, email, status, remark) values($1,$2,$3,$4,$5,$6,$7,$8)';
+    let query = 'insert into service_request (agent_name, agent_mail, agent_phone, clients, phone, email, status, remark) values($1,$2,$3,$4,$5,$6,$7,$8) returning id';
     client.query(query,[agent_name,agent_email,agent_phone,client_name,client_phone,client_email,"Pending",""], (err, result) =>{
         if(err){
             throw err;
         }
-        res.sendStatus(200).send(result.rowCount);
+        res.status(200).send(result.rows);
     })
    
 });
@@ -110,6 +110,16 @@ app.post("/service/request", (req, res) =>{
 app.get("/service/requests", (req, res) =>{
     let query ="select * from service_request";
     client.query(query, (err, result) =>{
+        if(err){
+            throw err;
+        }
+        res.status(200).send(result.rows);
+    })
+});
+
+app.get("/service/requests/:id", (req, res) =>{
+    let query ="select * from service_request where id =$1";
+    client.query(query,[req.params.id], (err, result) =>{
         if(err){
             throw err;
         }
