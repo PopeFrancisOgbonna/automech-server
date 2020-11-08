@@ -26,15 +26,15 @@ const connectionString = `postgresql://${process.env.DB_USER}:${process.env.DB_P
 //     console.log('connected sucessfully!');
 // })
 const isProduction = process.env.NODE_ENV ==="production";
-const db = new pg.Pool({
+const client = new pg.Pool({
     connectionString:isProduction ? process.env.DATABASE_URL : connectionString,
     ssl:isProduction?{rejectUnauthorized: false} :false
   });
   
-  db.on('connect', () => {
+  client.on('connect', () => {
     console.log('Teamwork Database connected successfully!');
   });
-  db.connect();
+  client.connect();
 
 app.post("/clients",(req, res)=>{
     const {fullName, password, phone, mail} = req.body;
