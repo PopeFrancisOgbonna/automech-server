@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const express = require('express');
 const PORT = process.env.PORT || 8080;
 require('dotenv').config();
-const {Client } = require('pg');
+const pg = require('pg');
 const { json } = require('body-parser');
 const app = express();
 
@@ -11,19 +11,30 @@ app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
 app.use(cors());
 
-const connectionStrings = `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_DATABASE}`;
-const client = new Client({
-    user: "postgres",
-    host: "localhost",
-    database:"autofinder",
-    password: "root",
-    port: 5432
-})
-client.connect();
-client.on("connect", (err, res) =>{
-    if(err) return console.log(err);
-    console.log('connected sucessfully!');
-})
+const connectionString = `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_DATABASE}`;
+// const client = new Client({
+//     // user: "postgres",
+//     // host: "localhost",
+//     // database:"autofinder",
+//     // password: "root",
+//     // port: 5432
+//     connectionString
+// })
+// client.connect();
+// client.on("connect", (err, res) =>{
+//     if(err) return console.log(err);
+//     console.log('connected sucessfully!');
+// })
+const isProduction = process.env.NODE_ENV ==="production";
+const db = new pg.Pool({
+    connectionString:isProduction ? process.env.DATABASE_URL : connectionString,
+    ssl:isProduction?{rejectUnauthorized: false} :false
+  });
+  
+  db.on('connect', () => {
+    console.log('Teamwork Database connected successfully!');
+  });
+  db.connect();
 
 app.post("/clients",(req, res)=>{
     const {fullName, password, phone, mail} = req.body;
