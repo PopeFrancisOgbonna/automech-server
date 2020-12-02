@@ -4,8 +4,9 @@ const express = require('express');
 const PORT = process.env.PORT || 8080;
 require('dotenv').config();
 const {Client } = require('pg');
-const { json } = require('body-parser');
 const app = express();
+const sgMail = require('@sendgrid/mail');
+
 
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
@@ -24,9 +25,14 @@ client.on("connect", (err, res) =>{
     if(err) return console.log(err);
     console.log('connected sucessfully!');
 })
-app.get("/", (req, res)=>{
+app.get("/", (req, res)=>{ 
     res.send('working...')
 })
+
+//Email Delivery service 
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+//Client Registration
 app.post("/clients",(req, res)=>{
     const {fullName, password, phone, mail} = req.body;
     let query ="insert into clients (name, phone, email, password) values($1, $2, $3, #4)";
@@ -37,7 +43,7 @@ app.post("/clients",(req, res)=>{
         res.status(200).send("Registration Successful!");
     })
 });
-
+//Client login
 app.post("/clients/login", (req, res) =>{
     const {userName, userPassword} = req.body;
     let query ="select * from clients where email = $1 and password = $2";
@@ -52,6 +58,7 @@ app.post("/clients/login", (req, res) =>{
     }) 
 });
 
+//Partners/Mechanics Registration
 app.post("/partners",(req, res) =>{
     const {fullName, email, phone, businessName, serviceType, serviceSpec,address, place, password} = req.body;
     if((fullName ==="" || email ==="" || phone ==="" || businessName ==="" || serviceType ==="" || serviceSpec ==="" || address ==="" || place ==="" || password) === ""){
@@ -65,7 +72,7 @@ app.post("/partners",(req, res) =>{
         res.status(200).send("Account Created Successfully.");
     })
 });
-
+//Partners/Mechanics login
 app.post("/partners/login", (req, res) =>{
     const {userName, userPassword} = req.body;
     let query = 'select * from mechanics where email = $1 and password = $2';
@@ -79,7 +86,7 @@ app.post("/partners/login", (req, res) =>{
         res.status(200).send(result.rows);
     })
 });
-
+//Get Registered Mechanics
 app.get("/mechanics", (req, res) =>{
     let query='select * from mechanics';
     client.query(query, (err, result) =>{
@@ -93,9 +100,20 @@ app.get("/mechanics", (req, res) =>{
     })
 });
 
+//Service Request logging
 app.post("/service/request", (req, res) =>{
     const {agent_name,agent_email,agent_phone,client_name,client_email,client_phone} = req.body;
-   
+   //Email body (Message to be delivered)
+    const msg = {
+        to: agent_email, // Change to your recipient
+        from: {email:'francisogbonna24@gmail.com', name: 'Auto Mechanic Finder'}, // Change to your verified sender
+        subject: 'Service Request from Client',
+        text: 
+        `Dear ${agent_name}, ${client_name} has requested for your services. Kindly reachout to him now.
+        Client's Phone No: ${client_phone}  Client's Email: ${client_email}
+        `,
+    }
+      
     if((agent_name ==="" || agent_email ==="" || agent_phone ==="" || client_name ==="" || client_email ==="" || client_phone ==="")){
         return res.status(201).send("Invalid Input.")
     }
@@ -104,6 +122,14 @@ app.post("/service/request", (req, res) =>{
         if(err){
             throw err;
         }
+        sgMail
+        .send(msg)
+        .then(() => {
+          console.log('Email sent')
+        })
+        .catch((error) => {
+          console.error(error)
+        })
         res.status(200).send(result.rows);
     })
    
